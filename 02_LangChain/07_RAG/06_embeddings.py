@@ -4,11 +4,14 @@ import math
 import numpy
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Create an embedding model and a fixed baseline phrase for comparison.
 embeddings=GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 base_string = "The quick brown fox"
 base_vector = embeddings.embed_query(base_string)
 
 def calculate(test_string):
+    """Compare a phrase embedding against the fixed baseline embedding using 
+    Euclidean and cosine distance."""
     test_vector = embeddings.embed_query(test_string)
     euclidean_distance = math.sqrt(sum((x - y) ** 2 for x, y in zip(base_vector, test_vector)))
     print(f"Euclidean distance is: {euclidean_distance}")
@@ -19,6 +22,7 @@ print('''Welcome to my embedding application.  Type a phrase and I will create a
 while True:
     line = input(">> ")
     if line:
+        # Compare each entered phrase against the baseline phrase.
         calculate(line)
     else:
         break

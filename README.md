@@ -1,6 +1,6 @@
 # Generative Security Class Examples
 
-This repository contains Python examples for a the Security Engineering with Generative AI course at FAU adapted from the git@github.com:wu4f/cs475-src.git repository by Professor Feng from pdx.edu. 
+This repository contains Python examples for a the Security Engineering with Generative AI course at FAU adapted from the git@github.com:wu4f/cs475-src.git repository by Professor Wu-chang Feng from pdx.edu. 
 The code is organized as a sequence of class modules that introduce model providers, LangChain primitives, retrieval-augmented generation, and agent/tool workflows.
 
 This repository is being updated by the course instructor to be compatible with current software versions. 

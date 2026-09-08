@@ -12,8 +12,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 
+# Configure the chat model used to answer questions from retrieved context.
 llm = ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL"))
 
+# Open the persisted vector database and create a retriever from it.
 vectorstore = Chroma(
      persist_directory="./rag_data/.chromadb",
      embedding_function=VertexAIEmbeddings(
@@ -25,7 +27,7 @@ vectorstore = Chroma(
 
 retriever = vectorstore.as_retriever()
 
-
+# Use a local prompt so the RAG response length and fallback behavior are explicit.
 prompt = ChatPromptTemplate.from_template(
     """You are an assistant for question-answering tasks.
 Use the following pieces of retrieved context to answer the question.
@@ -42,8 +44,10 @@ Answer:"""
 print("RAG prompt:", prompt)
 
 def format_docs(docs):
+    """Join retrieved document contents into one prompt context string."""
     return "\n\n".join(doc.page_content for doc in docs)
 
+# Retrieve context, fill the prompt, call the model, and parse plain text.
 rag_chain = (
     {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | prompt
@@ -55,6 +59,7 @@ print("Welcome to my RAG application.  Ask me a question and I will answer it fr
 # Iterate over documents and dump metadata
 document_data_sources = set()
 for doc_metadata in retriever.vectorstore.get()['metadatas']:
+    # Collect unique source names so the user can see what can be queried.
     document_data_sources.add(doc_metadata['source']) 
 for doc in document_data_sources:
     print(f"  {doc}")
@@ -62,6 +67,7 @@ for doc in document_data_sources:
 while True:
     line = input("llm>> ")
     if line:
+        # Answer each question using the retrieval-augmented chain.
         result = rag_chain.invoke(line)
         print(result)
     else:

@@ -15,6 +15,7 @@ class WikipediaLoader:
     """
 
     def __init__(self, query: str, load_max_docs: int = 4) -> None:
+        """Store the search query and validate the requested document count."""
         if not isinstance(query, str):
             raise TypeError("query must be a string")
         if load_max_docs < 1:
@@ -39,6 +40,7 @@ class WikipediaLoader:
 
         wikipedia.set_rate_limiting(True, min_wait=timedelta(milliseconds=500))
 
+        # Search for matching page titles, then fetch each full page.
         titles = wikipedia.search(self.query, results=self.load_max_docs)
         documents: list[Document] = []
 
@@ -62,6 +64,7 @@ if __name__ == "__main__":
     loader = WikipediaLoader(query="LangChain", load_max_docs=4)
     documents = loader.load()
 
+    # Print metadata so the loaded sources can be inspected quickly.
     for index, document in enumerate(documents, start=1):
         print(f"Document {index} metadata:")
         print(document.metadata)
