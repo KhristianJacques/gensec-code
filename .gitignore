@@ -1,52 +1,5 @@
-env
-.env
+﻿env
 .venv
-mymsticpyconfig.yaml
 .chromadb
 __pycache__
 *.pyc
-*.py[cod]
-.chainlit
-chainlit.md
-credentials.json
-token.json
-fastagent.jsonl
-uv.lock
-.python-version
-pyproject.toml
-
-# Logs and temporary files
-*.log
-tmp/
-temp/
-
-#main.py
-.fast-agent
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Editors and IDEs
-.vscode/
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/tasks.json
-
-.idea/
-*.swp
-*.swo
-*~
-
-# Operating-system files
-.DS_Store
-Thumbs.db
-
-# Python packaging / build artifacts
-build/
-dist/
-*.egg-info/
-.eggs/
-*.egg
-pip-wheel-metadata/
-share/python-wheels/
