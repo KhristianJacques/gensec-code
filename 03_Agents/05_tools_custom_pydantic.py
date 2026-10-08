@@ -24,19 +24,19 @@ class FetchUsersPassInput(BaseModel):
     username: str = Field(description="Should be an alphanumeric string")
     @model_validator(mode="before")
     def is_alphanumeric(cls, values: dict[str,any]) -> dict[str,any]:
-        if values.get("username").isalnum():
+        if str(values.get("username", "")).isalnum():  # changed: avoid crash when missing
             return values
         raise ValueError("Malformed username")
 
 @tool("fetch_users_pass", args_schema=FetchUsersPassInput, return_direct=True)
-def fetch_users_pass(username):
+def fetch_users_pass(username: str):  # changed: typed arg
    """Useful when you want to fetch a password hash for a particular user.  Takes a username as an argument.  Returns a JSON string"""
    res = db.run(f"SELECT passhash FROM users WHERE username = '{username}';")
    result = [el for sub in ast.literal_eval(res) for el in sub]
    return json.dumps(result)
 
 @tool
-def fetch_users(query):
+def fetch_users(query: str = ""):  # changed: typed arg so the tool schema is valid
    """Useful when you want to fetch the users in the database.  Returns a list of usernames in JSON."""
    res = db.run("SELECT username FROM users;")
    result = [el for sub in ast.literal_eval(res) for el in sub]
@@ -48,6 +48,7 @@ toolkit = SQLDatabaseToolkit(db=db,llm=llm)
 agent_executor = create_sql_agent(
     llm=llm,
     toolkit=toolkit,
+    agent_type="tool-calling",  # changed: Gemini 3.x replies with tool calls, not ReAct text
     extra_tools=[fetch_users, fetch_users_pass],
     verbose=True
 )

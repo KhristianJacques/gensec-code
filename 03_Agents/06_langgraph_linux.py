@@ -14,6 +14,10 @@ llm = ChatGoogleGenerativeAI(
 #from langchain_anthropic import ChatAnthropic
 #llm = ChatAnthropic(model=os.getenv("ANTHROPIC_MODEL"))
 
+import platform
+# changed: on Windows os.system() runs cmd.exe, so ask for cmd commands there
+SHELL = "Windows cmd.exe" if platform.system() == "Windows" else "Linux bash"
+
 class AgentState(TypedDict):
     messages: list
 
@@ -22,10 +26,10 @@ def linux_command_node(state: AgentState):
     user_input = state["messages"][-1]
 
     response = llm.invoke(
-        f"""Given the user's prompt, generate a Linux command.  Provide no formatting, only the command. \n\n User prompt: {user_input}"""
+        f"""Given the user's prompt, generate a command for the {SHELL} shell.  Provide no formatting, only the command. \n\n User prompt: {user_input}"""
     )
 
-    command = response.content[0]['text'] if hasattr(response, "content") else response
+    command = response.text.strip()  # changed: content may be a string or a list of blocks; .text handles both
 
     print(f"Command generated: {command}")
     return {"messages": state["messages"] + [command]}
@@ -43,7 +47,7 @@ def user_check(state: AgentState):
         f"""The following is the response the user gave to 'Should I execute this command?': {user_ack} \n\n If the answer is negative, return NO. Otherwise return YES."""
     )
 
-    response_text = response.content[0]['text'] if hasattr(response, "content") else response
+    response_text = response.text  # changed: content may be a string or a list of blocks; .text handles both
     return "linux_node" if "YES" in response_text.upper() else END
 
 

@@ -21,6 +21,7 @@ db = SQLDatabase.from_uri(f"sqlite:///{database}")
 agent = create_sql_agent(
     llm=llm,
     db=db,
+    agent_type="tool-calling",  # changed: Gemini 3.x replies with tool calls, not ReAct text
     verbose=True
 )
 
@@ -38,3 +39,9 @@ while True:
             print(e)
     else:
         break
+
+agent = create_sql_agent(
+    llm=llm,
+    db=db,
+    verbose=True
+)

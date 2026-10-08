@@ -20,14 +20,14 @@ llm = ChatGoogleGenerativeAI(
 #llm = ChatAnthropic(model=os.getenv("ANTHROPIC_MODEL"))
 
 @tool
-def fetch_users_pass(username):
+def fetch_users_pass(username: str):  # changed: typed arg
    """Useful when you want to fetch a password hash for a particular user.  Takes a username as an argument.  Returns a JSON string"""
    res = db.run(f"SELECT passhash FROM users WHERE username = '{username}';")
    result = [el for sub in ast.literal_eval(res) for el in sub]
    return json.dumps(result)
 
 @tool
-def fetch_users(query):
+def fetch_users(query: str = ""):  # changed: typed arg so the tool schema is valid
    """Useful when you want to fetch the users in the database.  Returns a list of usernames in JSON."""
    res = db.run("SELECT username FROM users;")
    result = [el for sub in ast.literal_eval(res) for el in sub]
@@ -39,6 +39,7 @@ toolkit = SQLDatabaseToolkit(db=db,llm=llm)
 agent_executor = create_sql_agent(
     llm=llm,
     toolkit=toolkit,
+    agent_type="tool-calling",  # changed: Gemini 3.x replies with tool calls, not ReAct text
     extra_tools=[fetch_users, fetch_users_pass],
     handle_parsing_errors=True,
     verbose=True

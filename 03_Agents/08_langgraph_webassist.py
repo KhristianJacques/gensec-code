@@ -54,7 +54,7 @@ HTML:
 {html[:12000]}
 """
     resp = await llm.ainvoke(prompt)
-    return resp.content[0]['text'].strip()
+    return resp.text.strip()  # changed: content may be a string or a list of blocks; .text handles both
 
 # ---------------------------------------------------------------------
 # Agents
@@ -84,7 +84,7 @@ nfl
 both
 """
     resp = await llm.ainvoke(prompt)
-    decision = resp.content[0]['text'].lower().strip()
+    decision = resp.text.lower().strip()  # changed: content may be a string or a list of blocks; .text handles both
 
     if decision == "nba":
         return Send("nba", state)
