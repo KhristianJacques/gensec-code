@@ -31,12 +31,14 @@ Functions:
     cve_search         Search the NVD for CVEs by keyword.
     dns_lookup         Resolve DNS records for a hostname.
     run_python         Run Python code in a PythonREPL after user approval.
+    handle_tool_errors Report tool failures to the model instead of crashing.
     build_supervisor   Assemble the supervisor and its sub-agents.
     ask                Send one message to the supervisor and return its reply.
     main               Command line entry point.
 """
 
 import argparse
+import datetime
 import os
 import re
 import sys
@@ -45,10 +47,16 @@ import dns.exception
 import dns.resolver
 import requests
 from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_tool_call
+from langchain.messages import ToolMessage
 from langchain.tools import tool
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.tools import DuckDuckGoSearchRun, WikipediaQueryRun
-from langchain_community.utilities import SQLDatabase, WikipediaAPIWrapper
+from langchain_community.utilities import (
+    DuckDuckGoSearchAPIWrapper,
+    SQLDatabase,
+    WikipediaAPIWrapper,
+)
 from langchain_experimental.utilities import PythonREPL
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import InMemorySaver
@@ -97,7 +105,9 @@ def _summarize_cve(cve: dict) -> str:
         if metrics.get(key):
             data = metrics[key][0]["cvssData"]
             label = data.get("baseSeverity") or metrics[key][0].get("baseSeverity", "")
-            severity = f"CVSS {data.get('version')} {data.get('baseScore')} {label}".strip()
+            severity = (
+                f"CVSS {data.get('version')} {data.get('baseScore')} {label}".strip()
+            )
             break
     published = cve.get("published", "unknown")[:10]
     return f"{cve.get('id')} (published {published}, {severity}): {description}"
@@ -199,6 +209,28 @@ def run_python(code: str) -> str:
 # --------------------------------------------------------------------------
 
 
+@wrap_tool_call
+def handle_tool_errors(request, handler):
+    """Turn a tool exception into a ToolMessage so the model can recover.
+
+    Without this, one failed web search or query would abort the whole run.
+
+    Arguments:
+    request -- the tool call about to be executed
+    handler -- callable that executes the tool call
+
+    Returns the tool's ToolMessage, or one describing the error.
+    """
+    try:
+        return handler(request)
+    except Exception as error:  # report any tool failure back to the model
+        return ToolMessage(
+            content=f"Tool error: {error}. Try different input or another tool.",
+            tool_call_id=request.tool_call["id"],
+            name=request.tool_call["name"],
+        )
+
+
 def _show_step(step: dict) -> None:
     """Print the tool calls and tool results contained in one stream step.
 
@@ -247,15 +279,21 @@ def build_supervisor(database: str | None = None):
     thread_id in the invoke config to keep context between turns.
     """
     llm = ChatGoogleGenerativeAI(model=os.getenv("GOOGLE_MODEL"), temperature=0)
+    today = f"Today's date is {datetime.date.today():%B %d, %Y}. "
 
     research_agent = create_agent(
         llm,
         tools=[
-            DuckDuckGoSearchRun(),
+            DuckDuckGoSearchRun(
+                api_wrapper=DuckDuckGoSearchAPIWrapper(
+                    region="us-en", backend="duckduckgo"
+                )
+            ),
             WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper(top_k_results=2)),
         ],
+        middleware=[handle_tool_errors],
         system_prompt=(
-            "You research topics on the web. Use Wikipedia for background and "
+            today + "You research topics on the web. Use Wikipedia for background and "
             "DuckDuckGo for current information. Report facts concisely and "
             "say which tool each fact came from."
         ),
@@ -263,8 +301,9 @@ def build_supervisor(database: str | None = None):
     security_agent = create_agent(
         llm,
         tools=[cve_lookup, cve_search, dns_lookup],
+        middleware=[handle_tool_errors],
         system_prompt=(
-            "You are a security analyst. Use the NVD tools for vulnerability "
+            today + "You are a security analyst. Use the NVD tools for vulnerability "
             "data and the DNS tool for domain records. Report only what the "
             "tools return; never invent CVE identifiers or scores."
         ),
@@ -272,8 +311,9 @@ def build_supervisor(database: str | None = None):
     coding_agent = create_agent(
         llm,
         tools=[run_python],
+        middleware=[handle_tool_errors],
         system_prompt=(
-            "You solve problems by writing and running Python. Always print "
+            today + "You solve problems by writing and running Python. Always print "
             "results. If the user declines to run code, say so and stop."
         ),
     )
@@ -307,8 +347,9 @@ def build_supervisor(database: str | None = None):
         database_agent = create_agent(
             llm,
             tools=SQLDatabaseToolkit(db=db, llm=llm).get_tools(),
+            middleware=[handle_tool_errors],
             system_prompt=(
-                "You answer questions about a SQLite database. List the "
+                today + "You answer questions about a SQLite database. List the "
                 "tables first, read the schema of only the tables you need, "
                 "then run SELECT queries that name specific columns and use "
                 "LIMIT. Never modify data. Answer only from query results."
@@ -327,8 +368,9 @@ def build_supervisor(database: str | None = None):
     return create_agent(
         llm,
         tools=delegates,
+        middleware=[handle_tool_errors],
         system_prompt=(
-            "You are SecOps Sidekick, a supervisor that answers security and "
+            today + "You are SecOps Sidekick, a supervisor that answers security and "
             "IT questions by delegating to specialist agents. Break the "
             "question into steps, call the right agent for each step, pass "
             "earlier results forward when a later step needs them, then write "
