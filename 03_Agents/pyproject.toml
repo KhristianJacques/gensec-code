@@ -1,0 +1,28 @@
+[project]
+name = "03-agents"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "dnspython>=2.8.0",
+    "google-search-results>=2.4.2",
+    "grpcio>=1.84.0",
+    "httpx>=0.28.1",
+    "ipython>=9.17.1",
+    "langchain>=1.4.3",
+    "langchain-anthropic>=1.7.5",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.6.7",
+    "langchain-experimental>=0.4.2",
+    "langchain-google-genai>=4.4.0",
+    "langchain-openai>=1.6.7",
+    "langchainhub>=0.1.21",
+    "langgraph>=1.2.14",
+    "mypy-extensions>=1.1.0",
+    "numexpr>=2.14.2",
+    "openai>=3.26.0",
+    "openapi-pydantic>=0.6.0",
+    "pyreadline3>=3.5.6",
+    "validators>=0.35.0",
+    "wikipedia>=1.4.0",
+    "xmltodict>=1.0.4",
+]
