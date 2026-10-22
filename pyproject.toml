@@ -7,4 +7,5 @@ dependencies = []
 [tool.uv.workspace]
 members = [
     "03_Agents",
+    "04_MCP/01_sqlite",
 ]
